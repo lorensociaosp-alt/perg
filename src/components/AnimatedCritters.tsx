@@ -1,5 +1,5 @@
+import { useState, useEffect } from 'react';
 const DECORATIONS = [
-  // Top-left corner area
   { emoji: "🐱", top: "4%", left: "3%", size: 32, rotate: -10 },
   { emoji: "🌻", top: "8%", left: "12%", size: 26 },
   { emoji: "🐝", top: "3%", left: "22%", size: 20, rotate: 15 },
@@ -37,28 +37,48 @@ const DECORATIONS = [
 ];
 
 const AnimatedCritters = ({ visible }: { visible: boolean }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   if (!visible) return null;
 
   return (
     <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-      {DECORATIONS.map((el, i) => (
-        <div
-          key={i}
-          className="absolute"
-          style={{
-            top: el.top,
-            bottom: (el as any).bottom,
-            left: el.left,
-            right: el.right,
-            fontSize: `${el.size}px`,
-            transform: `rotate(${el.rotate || 0}deg)`,
-            opacity: 0,
-            animation: `deco-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${1.5 + i * 0.12}s forwards`,
-          }}
-        >
-          {el.emoji}
-        </div>
-      ))}
+      {DECORATIONS.map((el, i) => {
+        // Skip side decorations on mobile to prevent text overlap
+        // Side decorations are roughly indices 6-23 based on the array structure above
+        // Let's filter based on position properties instead of index for robustness
+        const isSideDecoration = (el as any).top && ((el as any).top > "20%" && (el as any).top < "80%");
+
+        if (isMobile && isSideDecoration) return null;
+
+        const size = isMobile ? el.size * 0.6 : el.size;
+
+        return (
+          <div
+            key={i}
+            className="absolute"
+            style={{
+              top: el.top,
+              bottom: (el as any).bottom,
+              left: el.left,
+              right: el.right,
+              fontSize: `${size}px`,
+              transform: `rotate(${el.rotate || 0}deg)`,
+              opacity: 0,
+              animation: `deco-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${1.5 + i * 0.12}s forwards`,
+            }}
+          >
+            {el.emoji}
+          </div>
+        );
+      })}
 
       <style>{`
         @keyframes deco-pop {
